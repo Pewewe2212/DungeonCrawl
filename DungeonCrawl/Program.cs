@@ -560,7 +560,7 @@ namespace DungeonCrawl
             PrintLine("Shop. You can buy any item on sale, if you can afford it. Null input closes shop");
             PrintLine("Shop", ConsoleColor.DarkCyan);
             cursorPosition += 2;
-            // The shops on the floor are decided at the start of the floor and it always starts with shop 0 on floor 1, each shop should have a return scroll to win, cus otherwise the game can last for too long to be fun            
+  
             // the shop qualities
 
 

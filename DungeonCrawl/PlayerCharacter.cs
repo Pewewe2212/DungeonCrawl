@@ -26,7 +26,7 @@ namespace DungeonCrawl
         {
             PlayerCharacter character = new PlayerCharacter();
             character.name = "";
-            character.hitpoints = 20;
+            character.hitpoints = 100;
             character.maxHitpoints = character.hitpoints;
             character.gold = 20;
             character.weapon = null;
