@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Numerics;
+﻿using System.Numerics;
 
 namespace DungeonCrawl
 {
@@ -47,7 +46,27 @@ namespace DungeonCrawl
         const int ROOM_MAX_H = 8;
         const int SHOP_CHANCE = 2; // should be a 1/20 (2/40) chance for a room to be a shop
 
+        // Shop per floor
+        int shopType = 0;
 
+        bool scrollBought = false;
+
+        // shop prices
+        int shop;
+        int swordQuality;
+        int sword1Quality;
+        int sword2Quality;
+
+        int armorQuality;
+        int armor1Quality;
+        int armor2Quality;
+
+        int potion1Quality;
+        int potion2Quality;
+        int potion3Quality;
+        int potion4Quality;
+
+        int scrollPrice;
 
         static void Main(string[] args)
         {
@@ -85,6 +104,24 @@ namespace DungeonCrawl
                         // Player init
                         currentLevel.PlacePlayerToMap(player, currentLevel);
                         currentLevel.PlaceStairsToMap(currentLevel);
+
+                        //shop
+                        program.shop = random.Next(1, 3);
+                        program.swordQuality = 2;
+                        program.sword1Quality = random.Next(4, 6);
+                        program.sword2Quality = random.Next(2, 5);
+
+                        program.armorQuality = 2;
+                        program.armor1Quality = random.Next(4, 6);
+                        program.armor2Quality = random.Next(2, 5);
+
+                        program.potion1Quality = random.Next(1, 3);
+                        program.potion2Quality = random.Next(1, 6);
+                        program.potion3Quality = random.Next(2, 5);
+                        program.potion4Quality = random.Next(4, 8);
+
+
+                        program.scrollPrice = random.Next(30, 50);
                         state = GameState.GameLoop;
                         break;
                     case GameState.GameLoop:
@@ -95,7 +132,7 @@ namespace DungeonCrawl
 
                         player.DrawPlayer(player, program);
                         program.DrawCommands();
-                        program.DrawInfo(player, monsters, items, messages);
+                        program.DrawInfo(player, messages);
                         // Draw map
                         // Draw information
                         // Wait for player command
@@ -104,7 +141,7 @@ namespace DungeonCrawl
                         {
                             messages.Clear();
                             PlayerTurnResult result = DoPlayerTurn(currentLevel, player, itemClass, monsters, items, dirtyTiles, messages);
-                            program.DrawInfo(player, monsters, items, messages);
+                            program.DrawInfo(player, messages);
                             if (result == PlayerTurnResult.TurnOver)
                             {
                                 break;
@@ -115,6 +152,12 @@ namespace DungeonCrawl
                                 state = GameState.Inventory;
                                 break;
                             }
+                            else if (result == PlayerTurnResult.EnterShop)
+                            {
+                                Console.Clear();
+                                state = GameState.Shop;
+                                break;
+                            }
                             else if (result == PlayerTurnResult.NextLevel)
                             {
                                 currentLevel = CreateMap(random);
@@ -122,6 +165,25 @@ namespace DungeonCrawl
                                 items = itemClass.CreateItems(currentLevel, random);
                                 currentLevel.PlacePlayerToMap(player, currentLevel);
                                 currentLevel.PlaceStairsToMap(currentLevel);
+                                program.shopType = random.Next(3);
+
+                                //shop
+                                program.shop = random.Next(1, 3);
+                                program.swordQuality = 2;
+                                program.sword1Quality = random.Next(4, 6);
+                                program.sword2Quality = random.Next(2, 5);
+
+                                program.armorQuality = 2;
+                                program.armor1Quality = random.Next(4, 6);
+                                program.armor2Quality = random.Next(2, 5);
+
+                                program.potion1Quality = random.Next(1, 3);
+                                program.potion2Quality = random.Next(1, 6);
+                                program.potion3Quality = random.Next(2, 5);
+                                program.potion4Quality = random.Next(4, 8);
+
+
+                                program.scrollPrice = random.Next(30, 50);
                                 Console.Clear();
                                 break;
                             }
@@ -131,7 +193,7 @@ namespace DungeonCrawl
                         // Process enemies
                         monsterClass.ProcessEnemies(monsters, currentLevel, player, dirtyTiles, messages);
 
-                        program.DrawInfo(player, monsters, items, messages);
+                        program.DrawInfo(player, messages);
 
                         // Is player dead?
                         if (player.hitpoints <= 0)
@@ -147,10 +209,19 @@ namespace DungeonCrawl
                         {
                             state = GameState.GameLoop;
                             currentLevel.DrawMapAll(currentLevel, program);
-                            program.DrawInfo(player, monsters, items, messages);
+                            program.DrawInfo(player, messages);
                         }
                         // Read player command
                         // Change back to game loop
+                        break;
+                    case GameState.Shop:
+                        PlayerTurnResult shopResult = program.DrawShop(player, itemClass, messages, program.shopType, random);
+                        if (shopResult == PlayerTurnResult.BackToGame)
+                        {
+                            state = GameState.GameLoop;
+                            currentLevel.DrawMapAll(currentLevel, program);
+                            program.DrawInfo(player, messages);
+                        }
                         break;
                     case GameState.DeathScreen:
                         DrawEndScreen(random);
@@ -158,9 +229,14 @@ namespace DungeonCrawl
                         Console.SetCursorPosition(Console.WindowWidth / 2 - 4, Console.WindowHeight / 2);
                         program.Print("YOU DIED", ConsoleColor.Yellow);
                         Console.SetCursorPosition(Console.WindowWidth / 2 - 4, Console.WindowHeight / 2 + 1);
+                        int noRepeat = 0;
                         while (true)
                         {
-                            program.Print("Play again (y/n)", ConsoleColor.Gray);
+                            if (noRepeat == 0)
+                            {
+                                program.Print("Play again (y/n)", ConsoleColor.Gray);
+                                noRepeat += 1;
+                            }
                             ConsoleKeyInfo answer = Console.ReadKey();
                             if (answer.Key == ConsoleKey.Y)
                             {
@@ -413,9 +489,8 @@ namespace DungeonCrawl
             else if (destination == Map.Tile.ShopDoor)
             {
                 messages.Add("You open a door and find yourself in a Shop");
-                character.position = destinationPlace;
                 dirtyTiles.Add(startTile);
-               // return PlayerTurnResult.EnterShop; //(put this after you figure out the actual shop)
+                return PlayerTurnResult.EnterShop;
             }
             else if (destination == Map.Tile.Wall || destination == Map.Tile.Shop)
             {
@@ -434,7 +509,7 @@ namespace DungeonCrawl
         {
             // INVALID INPUT DOES NOT CLOSE INVENTORY IF IT'S EMPTY
             Console.SetCursorPosition(1, 1);
-            PrintLine("Inventory. Select item by inputting the number next to it. Invalid input closes inventory");
+            PrintLine("Inventory. Select item by inputting the number next to it. Null input closes inventory");
             ItemType currentType = ItemType.Weapon;
             PrintLine("Weapons", ConsoleColor.DarkCyan);
             for (int i = 0; i < character.inventory.Count; i++)
@@ -458,6 +533,10 @@ namespace DungeonCrawl
                 Print("Choose item: ", ConsoleColor.Yellow);
                 string choiceStr = Console.ReadLine();
                 int selectionindex = 0;
+                if (choiceStr == "")
+                {
+                    break;
+                }
                 if (int.TryParse(choiceStr, out selectionindex))
                 {
                     if (selectionindex >= 0 && selectionindex < character.inventory.Count)
@@ -474,7 +553,498 @@ namespace DungeonCrawl
             return PlayerTurnResult.BackToGame;
         }
 
-        public void DrawInfo(PlayerCharacter player, List<Monster> enemies, List<Item> items, List<string> messages)
+        public PlayerTurnResult DrawShop(PlayerCharacter character, Item item, List<String> messages, int shopType, Random random)
+        {
+            int cursorPosition = 1;
+            Console.SetCursorPosition(1, cursorPosition);
+            PrintLine("Shop. You can buy any item on sale, if you can afford it. Null input closes shop");
+            PrintLine("Shop", ConsoleColor.DarkCyan);
+            cursorPosition += 2;
+            // The shops on the floor are decided at the start of the floor and it always starts with shop 0 on floor 1, each shop should have a return scroll to win, cus otherwise the game can last for too long to be fun            
+            // the shop qualities
+
+
+            // draws the starting shop
+            if (shopType == 0)
+            {
+
+                // get the item prices
+                int swordPrice = 5;
+                int armorPrice = 5;
+                int potion1Price = potion1Quality * 2;
+                int potion2Price = potion2Quality * 2;
+
+
+                if (shop == 1)
+                {
+                    // print the sword with quality 2, 2 potions with random qualities and the scroll
+                    PrintLine($"Sword (2), price {swordPrice}; ", ConsoleColor.Cyan);
+                    PrintLine($"Potion ({potion1Quality}), price {potion1Price}; ", ConsoleColor.Cyan);
+                    PrintLine($"Potion ({potion2Quality}), price {potion2Price}; ", ConsoleColor.Cyan);
+                    PrintLine($"Return scroll, price {scrollPrice}", ConsoleColor.Yellow);
+                }
+                else
+                {
+                    // print the armor with quality 2, 2 potions with random qualities and the scroll
+                    PrintLine($"Armor (2), price {armorPrice}; ", ConsoleColor.Cyan);
+                    PrintLine($"Potion ({potion1Quality}), price {potion1Price}; ", ConsoleColor.Cyan);
+                    PrintLine($"Potion ({potion2Quality}), price {potion2Price}; ", ConsoleColor.Cyan);
+                    PrintLine($"Return scroll, price {scrollPrice}", ConsoleColor.Yellow);
+                }
+                cursorPosition += 4;
+            }
+            else if (shopType == 1)
+            {
+                // shop with mostly consumables and a mediocre equipment item
+
+                // give prices
+                int potion1Price = potion1Quality * 2;
+                int potion2Price = potion2Quality * 2;
+                int potion3Price = potion3Quality * 2;
+                int potion4Price = potion4Quality * 2;
+                int swordPrice = sword2Quality * 3;
+                int armorPrice = armor2Quality * 3;
+
+                if (shop == 1)
+                {
+                    // 4 consumables and a sword
+                    Print($"Sword ({sword2Quality}), price {swordPrice}; ", ConsoleColor.Cyan);
+                    Print($"Potion ({potion1Quality}), price {potion1Price}; ", ConsoleColor.Cyan);
+                    Print($"Potion ({potion2Quality}), price {potion2Price}; ", ConsoleColor.Cyan);
+                    Print($"Potion ({potion3Quality}), price {potion3Price}; ", ConsoleColor.Cyan);
+                    Print($"Potion ({potion4Quality}), price {potion4Price}; ", ConsoleColor.Cyan);
+                    Print($"Return scroll, price {scrollPrice}", ConsoleColor.Yellow);
+                    cursorPosition += 6;
+                }
+                else
+                {
+                    // 3 consumables and armor
+                    Print($"Armor ({armor2Quality}), price {armorPrice}; ", ConsoleColor.Cyan);
+                    Print($"Potion ({potion1Quality}), price {potion1Price}; ", ConsoleColor.Cyan);
+                    Print($"Potion ({potion2Quality}), price {potion2Price}; ", ConsoleColor.Cyan);
+                    Print($"Potion ({potion3Quality}), price {potion3Price}; ", ConsoleColor.Cyan);
+                    Print($"Return scroll, price {scrollPrice}", ConsoleColor.Yellow);
+                    cursorPosition += 5;
+                }
+            }
+            else if (shopType == 2)
+            {
+                //get prices
+                int sword1Price = sword1Quality * 3;
+                int sword2Price = sword2Quality * 3;
+                int armor1Price = armor1Quality * 3;
+                int potion1Price = potion1Quality * 3;
+                int potion2Price = potion2Quality * 3;
+
+                if (shop == 1)
+                {
+                    Print($"Sword ({sword1Quality}), price {sword1Price}; ", ConsoleColor.Cyan);
+                    Print($"Sword ({sword2Quality}), price {sword2Price}; ", ConsoleColor.Cyan);
+                    Print($"Potion ({potion1Quality}), price {potion1Price}; ", ConsoleColor.Cyan);
+                    Print($"Potion ({potion2Quality}), price {potion2Price}; ", ConsoleColor.Cyan);
+                    Print($"Return scroll, price {scrollPrice}", ConsoleColor.Yellow);
+                }
+                else
+                {
+                    Print($"Sword ({sword1Quality}), price {sword1Price}; ", ConsoleColor.Cyan);
+                    Print($"Armor ({armor1Quality}), price {armor1Price}; ", ConsoleColor.Cyan);
+                    Print($"Potion ({potion1Quality}), price {potion1Price}; ", ConsoleColor.Cyan);
+                    Print($"Potion ({potion2Quality}), price {potion2Price}; ", ConsoleColor.Cyan);
+                    Print($"Return scroll, price {scrollPrice}", ConsoleColor.Yellow);
+                }
+                cursorPosition += 5;
+            }
+
+            while (true)
+            {
+                string choiceStr = Console.ReadLine();
+                cursorPosition += 1;
+                if (choiceStr == "")
+                {
+                    break;
+                }
+                else
+                {
+                    if (shopType == 0)
+                    {
+                        // shop has 1 item, 2 potions and a scroll
+
+                        // get the item prices
+                        int swordPrice = 5;
+                        int armorPrice = 5;
+                        int potion1Price = potion1Quality * 2;
+                        int potion2Price = potion2Quality * 2;
+
+                        if (shop == 1)
+                        {
+                            if ((choiceStr.ToLower() == "sword2" || choiceStr.ToLower() == "sword 2" || choiceStr.ToLower() == "sword(2)" || choiceStr.ToLower() == "sword (2)".ToLower() || choiceStr.ToLower() == "sword") && character.gold >= swordPrice)
+                            {
+                                Item i = new Item();
+                                i.type = ItemType.Weapon;
+                                i.quality = 2;
+                                i.name = "Greedy Sword";
+                                item.GiveItem(character, i);
+                                character.gold -= swordPrice;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                            else if ((choiceStr.ToLower() == $"potion{potion1Quality}" || choiceStr.ToLower() == $"potion {potion1Quality}" || choiceStr.ToLower() == $"potion({potion1Quality})" || choiceStr.ToLower() == $"potion ({potion1Quality})".ToLower()) && character.gold >= potion1Price)
+                            {
+                                Item i = new Item();
+                                i.type = ItemType.Potion;
+                                i.quality = potion1Quality;
+                                i.name = "Potion of the Greedy";
+                                item.GiveItem(character, i);
+                                character.gold -= potion1Price;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                            else if ((choiceStr.ToLower() == $"potion{potion2Quality}" || choiceStr.ToLower() == $"potion {potion2Quality}" || choiceStr.ToLower() == $"potion({potion2Quality})" || choiceStr.ToLower() == $"potion ({potion2Quality})".ToLower()) && character.gold >= potion2Price)
+                            {
+                                Item i = new Item();
+                                i.type = ItemType.Potion;
+                                i.quality = potion2Quality;
+                                i.name = "Potion of the Greedy";
+                                item.GiveItem(character, i);
+                                character.gold -= potion2Price;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                            else if ((choiceStr.ToLower() == $"return scroll" || choiceStr.ToLower() == $"returnscroll" || choiceStr.ToLower() == $"scroll" || choiceStr.ToLower() == $"return".ToLower()) && character.gold >= scrollPrice)
+                            {
+                                character.gold -= scrollPrice;
+                                scrollBought = true;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                        }
+                        else
+                        {
+                            if ((choiceStr.ToLower() == "armor2" || choiceStr.ToLower() == "armor 2" || choiceStr.ToLower() == "armor(2)" || choiceStr.ToLower() == "armor (2)".ToLower() || choiceStr.ToLower() == "armor") && character.gold >= armorPrice)
+                            {
+                                Item i = new Item();
+                                i.type = ItemType.Armor;
+                                i.quality = 2;
+                                i.name = "Greedy Armor";
+                                item.GiveItem(character, i);
+                                character.gold -= armorPrice;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                            else if ((choiceStr.ToLower() == $"potion{potion1Quality}" || choiceStr.ToLower() == $"potion {potion1Quality}" || choiceStr.ToLower() == $"potion({potion1Quality})" || choiceStr.ToLower() == $"potion ({potion1Quality})".ToLower()) && character.gold >= potion1Price)
+                            {
+                                Item i = new Item();
+                                i.type = ItemType.Potion;
+                                i.quality = potion1Quality;
+                                i.name = "Potion of the Greedy";
+                                item.GiveItem(character, i);
+                                character.gold -= potion1Price;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                            else if ((choiceStr.ToLower() == $"potion{potion2Quality}" || choiceStr.ToLower() == $"potion {potion2Quality}" || choiceStr.ToLower() == $"potion({potion2Quality})" || choiceStr.ToLower() == $"potion ({potion2Quality})".ToLower()) && character.gold >= potion2Price)
+                            {
+                                Item i = new Item();
+                                i.type = ItemType.Potion;
+                                i.quality = potion2Quality;
+                                i.name = "Potion of the Greedy";
+                                item.GiveItem(character, i);
+                                character.gold -= potion2Price;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                            else if ((choiceStr.ToLower() == $"return scroll" || choiceStr.ToLower() == $"returnscroll" || choiceStr.ToLower() == $"scroll" || choiceStr.ToLower() == $"return".ToLower()) && character.gold >= scrollPrice)
+                            {
+                                character.gold -= scrollPrice;
+                                scrollBought = true;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                        }
+                        DrawInfo(character, messages);
+                        Console.SetCursorPosition(1, cursorPosition);
+                    }
+                    else if (shopType == 1)
+                    {
+                        // shop with mostly consumables and a mediocre equipment item
+
+                        // give prices
+                        int potion1Price = potion1Quality * 2;
+                        int potion2Price = potion2Quality * 2;
+                        int potion3Price = potion3Quality * 2;
+                        int potion4Price = potion4Quality * 2;
+                        int swordPrice = swordQuality * 3;
+                        int armorPrice = armorQuality * 3;
+
+                        if (shop == 1)
+                        {
+                            if ((choiceStr.ToLower() == $"sword{swordQuality}" || choiceStr.ToLower() == $"sword {swordQuality}" || choiceStr.ToLower() == $"sword({swordQuality})" || choiceStr.ToLower() == $"sword ({swordQuality})".ToLower() || choiceStr.ToLower() == "sword") && character.gold >= swordPrice)
+                            {
+                                Item i = new Item();
+                                i.type = ItemType.Weapon;
+                                i.quality = sword2Quality;
+                                i.name = "Greedy Sword";
+                                item.GiveItem(character, i);
+                                character.gold -= swordPrice;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                            else if ((choiceStr.ToLower() == $"potion{potion1Quality}" || choiceStr.ToLower() == $"potion {potion1Quality}" || choiceStr.ToLower() == $"potion({potion1Quality})" || choiceStr.ToLower() == $"potion ({potion1Quality})".ToLower()) && character.gold >= potion1Price)
+                            {
+                                Item i = new Item();
+                                i.type = ItemType.Potion;
+                                i.quality = potion1Quality;
+                                i.name = "Potion of the Greedy";
+                                item.GiveItem(character, i);
+                                character.gold -= potion1Price;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                            else if ((choiceStr.ToLower() == $"potion{potion2Quality}" || choiceStr.ToLower() == $"potion {potion2Quality}" || choiceStr.ToLower() == $"potion({potion2Quality})" || choiceStr.ToLower() == $"potion ({potion2Quality})".ToLower()) && character.gold >= potion2Price)
+                            {
+                                Item i = new Item();
+                                i.type = ItemType.Potion;
+                                i.quality = potion2Quality;
+                                i.name = "Potion of the Greedy";
+                                item.GiveItem(character, i);
+                                character.gold -= potion2Price;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                            else if ((choiceStr.ToLower() == $"potion{potion3Quality}" || choiceStr.ToLower() == $"potion {potion3Quality}" || choiceStr.ToLower() == $"potion({potion3Quality})" || choiceStr.ToLower() == $"potion ({potion3Quality})".ToLower()) && character.gold >= potion3Price)
+                            {
+                                Item i = new Item();
+                                i.type = ItemType.Potion;
+                                i.quality = potion3Quality;
+                                i.name = "Potion of the Greedy";
+                                item.GiveItem(character, i);
+                                character.gold -= potion3Price;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                            else if ((choiceStr.ToLower() == $"potion{potion4Quality}" || choiceStr.ToLower() == $"potion {potion4Quality}" || choiceStr.ToLower() == $"potion({potion4Quality})" || choiceStr.ToLower() == $"potion ({potion4Quality})".ToLower()) && character.gold >= potion4Price)
+                            {
+                                Item i = new Item();
+                                i.type = ItemType.Potion;
+                                i.quality = potion4Quality;
+                                i.name = "Potion of the Greedy";
+                                item.GiveItem(character, i);
+                                character.gold -= potion4Price;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                            else if ((choiceStr.ToLower() == $"return scroll" || choiceStr.ToLower() == $"returnscroll" || choiceStr.ToLower() == $"scroll" || choiceStr.ToLower() == $"return".ToLower()) && character.gold >= scrollPrice)
+                            {
+                                character.gold -= scrollPrice;
+                                scrollBought = true;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                        }
+                        else
+                        {
+                            if ((choiceStr.ToLower() == $"armor{armor2Quality}" || choiceStr.ToLower() == $"armor {armor2Quality}" || choiceStr.ToLower() == $"armor({armor2Quality})") || choiceStr.ToLower() == $"armor ({armor2Quality})")
+                            {
+                                Item i = new Item();
+                                i.type = ItemType.Armor;
+                                i.quality = armor2Quality;
+                                i.name = "Greedy Armor";
+                                item.GiveItem(character, i);
+                                character.gold -= armorPrice;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                            else if ((choiceStr.ToLower() == $"potion{potion1Quality}" || choiceStr.ToLower() == $"potion {potion1Quality}" || choiceStr.ToLower() == $"potion({potion1Quality})" || choiceStr.ToLower() == $"potion ({potion1Quality})".ToLower()) && character.gold >= potion1Price)
+                            {
+                                Item i = new Item();
+                                i.type = ItemType.Potion;
+                                i.quality = potion1Quality;
+                                i.name = "Potion of the Greedy";
+                                item.GiveItem(character, i);
+                                character.gold -= potion1Price;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                            else if ((choiceStr.ToLower() == $"potion{potion2Quality}" || choiceStr.ToLower() == $"potion {potion2Quality}" || choiceStr.ToLower() == $"potion({potion2Quality})" || choiceStr.ToLower() == $"potion ({potion2Quality})".ToLower()) && character.gold >= potion2Price)
+                            {
+                                Item i = new Item();
+                                i.type = ItemType.Potion;
+                                i.quality = potion2Quality;
+                                i.name = "Potion of the Greedy";
+                                item.GiveItem(character, i);
+                                character.gold -= potion2Price;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                            else if ((choiceStr.ToLower() == $"potion{potion3Quality}" || choiceStr.ToLower() == $"potion {potion3Quality}" || choiceStr.ToLower() == $"potion({potion3Quality})" || choiceStr.ToLower() == $"potion ({potion3Quality})".ToLower()) && character.gold >= potion3Price)
+                            {
+                                Item i = new Item();
+                                i.type = ItemType.Potion;
+                                i.quality = potion3Quality;
+                                i.name = "Potion of the Greedy";
+                                item.GiveItem(character, i);
+                                character.gold -= potion3Price;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                            else if ((choiceStr.ToLower() == $"potion{potion4Quality}" || choiceStr.ToLower() == $"potion {potion4Quality}" || choiceStr.ToLower() == $"potion({potion4Quality})" || choiceStr.ToLower() == $"potion ({potion4Quality})".ToLower()) && character.gold >= potion4Price)
+                            {
+                                Item i = new Item();
+                                i.type = ItemType.Potion;
+                                i.quality = potion4Quality;
+                                i.name = "Potion of the Greedy";
+                                item.GiveItem(character, i);
+                                character.gold -= potion4Price;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                            else if ((choiceStr.ToLower() == $"return scroll" || choiceStr.ToLower() == $"returnscroll" || choiceStr.ToLower() == $"scroll" || choiceStr.ToLower() == $"return".ToLower()) && character.gold >= scrollPrice)
+                            {
+                                character.gold -= scrollPrice;
+                                scrollBought = true;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                        }
+                        DrawInfo(character, messages);
+                        Console.SetCursorPosition(1, cursorPosition);
+                    }
+                    else if (shopType == 2)
+                    {
+
+                        //get prices
+                        int sword1Price = sword1Quality * 3;
+                        int sword2Price = sword2Quality * 3;
+                        int armor1Price = armor1Quality * 3;
+                        int potion1Price = potion1Quality * 3;
+                        int potion2Price = potion2Quality * 3;
+
+                        if (shop == 1)
+                        {
+                            Print($"Potion ({potion1Quality}), price {potion1Price}; ", ConsoleColor.Cyan);
+                            Print($"Potion ({potion2Quality}), price {potion2Price}; ", ConsoleColor.Cyan);
+                            Print($"Return scroll, price {scrollPrice}", ConsoleColor.Yellow);
+
+                            if ((choiceStr.ToLower() == $"sword{sword1Quality}" || choiceStr.ToLower() == $"sword {sword1Quality}" || choiceStr.ToLower() == $"sword({sword1Quality})" || choiceStr.ToLower() == $"sword ({sword1Quality})".ToLower() || choiceStr.ToLower() == "sword") && character.gold >= sword1Price)
+                            {
+                                Item i = new Item();
+                                i.type = ItemType.Weapon;
+                                i.quality = sword1Quality;
+                                i.name = "Greedy Sword";
+                                item.GiveItem(character, i);
+                                character.gold -= sword1Price;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                            else if ((choiceStr.ToLower() == $"sword{sword2Quality}" || choiceStr.ToLower() == $"sword {sword2Quality}" || choiceStr.ToLower() == $"sword({sword2Quality})" || choiceStr.ToLower() == $"sword ({sword2Quality})".ToLower() || choiceStr.ToLower() == "sword") && character.gold >= sword2Price)
+                            {
+                                Item i = new Item();
+                                i.type = ItemType.Weapon;
+                                i.quality = sword2Quality;
+                                i.name = "Greedy Sword";
+                                item.GiveItem(character, i);
+                                character.gold -= sword2Price;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                            else if ((choiceStr.ToLower() == $"potion{potion1Quality}" || choiceStr.ToLower() == $"potion {potion1Quality}" || choiceStr.ToLower() == $"potion({potion1Quality})" || choiceStr.ToLower() == $"potion ({potion1Quality})".ToLower()) && character.gold >= potion1Price)
+                            {
+                                Item i = new Item();
+                                i.type = ItemType.Potion;
+                                i.quality = potion1Quality;
+                                i.name = "Potion of the Greedy";
+                                item.GiveItem(character, i);
+                                character.gold -= potion1Price;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                            else if ((choiceStr.ToLower() == $"potion{potion2Quality}" || choiceStr.ToLower() == $"potion {potion2Quality}" || choiceStr.ToLower() == $"potion({potion2Quality})" || choiceStr.ToLower() == $"potion ({potion2Quality})".ToLower()) && character.gold >= potion2Price)
+                            {
+                                Item i = new Item();
+                                i.type = ItemType.Potion;
+                                i.quality = potion2Quality;
+                                i.name = "Potion of the Greedy";
+                                item.GiveItem(character, i);
+                                character.gold -= potion2Price;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                            else if ((choiceStr.ToLower() == $"return scroll" || choiceStr.ToLower() == $"returnscroll" || choiceStr.ToLower() == $"scroll" || choiceStr.ToLower() == $"return".ToLower()) && character.gold >= scrollPrice)
+                            {
+                                character.gold -= scrollPrice;
+                                scrollBought = true;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                        }
+                        else
+                        {
+                            Print($"Armor ({armor1Quality}), price {armor1Price}; ", ConsoleColor.Cyan);
+                            Print($"Potion ({potion1Quality}), price {potion1Price}; ", ConsoleColor.Cyan);
+                            Print($"Potion ({potion2Quality}), price {potion2Price}; ", ConsoleColor.Cyan);
+                            Print($"Return scroll, price {scrollPrice}", ConsoleColor.Yellow);
+
+                            if ((choiceStr.ToLower() == $"sword{sword2Quality}" || choiceStr.ToLower() == $"sword {sword2Quality}" || choiceStr.ToLower() == $"sword({sword2Quality})" || choiceStr.ToLower() == $"sword ({sword2Quality})".ToLower() || choiceStr.ToLower() == "sword") && character.gold >= sword2Price)
+                            {
+                                Item i = new Item();
+                                i.type = ItemType.Weapon;
+                                i.quality = sword2Quality;
+                                i.name = "Greedy Sword";
+                                item.GiveItem(character, i);
+                                character.gold -= sword2Price;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                            else if ((choiceStr.ToLower() == $"armor{armor2Quality}" || choiceStr.ToLower() == $"armor {armor2Quality}" || choiceStr.ToLower() == $"armor({armor2Quality})") || choiceStr.ToLower() == $"armor ({armor2Quality})")
+                            {
+                                Item i = new Item();
+                                i.type = ItemType.Armor;
+                                i.quality = armor2Quality;
+                                i.name = "Greedy Armor";
+                                item.GiveItem(character, i);
+                                character.gold -= armor1Price;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                            else if ((choiceStr.ToLower() == $"potion{potion1Quality}" || choiceStr.ToLower() == $"potion {potion1Quality}" || choiceStr.ToLower() == $"potion({potion1Quality})" || choiceStr.ToLower() == $"potion ({potion1Quality})".ToLower()) && character.gold >= potion1Price)
+                            {
+                                Item i = new Item();
+                                i.type = ItemType.Potion;
+                                i.quality = potion1Quality;
+                                i.name = "Potion of the Greedy";
+                                item.GiveItem(character, i);
+                                character.gold -= potion1Price;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                            else if ((choiceStr.ToLower() == $"potion{potion2Quality}" || choiceStr.ToLower() == $"potion {potion2Quality}" || choiceStr.ToLower() == $"potion({potion2Quality})" || choiceStr.ToLower() == $"potion ({potion2Quality})".ToLower()) && character.gold >= potion2Price)
+                            {
+                                Item i = new Item();
+                                i.type = ItemType.Potion;
+                                i.quality = potion2Quality;
+                                i.name = "Potion of the Greedy";
+                                item.GiveItem(character, i);
+                                character.gold -= potion2Price;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                            else if ((choiceStr.ToLower() == $"return scroll" || choiceStr.ToLower() == $"returnscroll" || choiceStr.ToLower() == $"scroll" || choiceStr.ToLower() == $"return".ToLower()) && character.gold >= scrollPrice)
+                            {
+                                character.gold -= scrollPrice;
+                                scrollBought = true;
+                                Print("Successfully bought\n");
+                                cursorPosition += 1;
+                            }
+                        }
+                        DrawInfo(character, messages);
+                        Console.SetCursorPosition(1, cursorPosition);
+                    }
+                }
+            }
+            return PlayerTurnResult.BackToGame;
+        }
+
+        public void DrawInfo(PlayerCharacter player, List<string> messages)
         {
             int infoLine1 = Console.WindowHeight - INFO_HEIGHT;
             Console.SetCursorPosition(0, infoLine1);
@@ -526,7 +1096,7 @@ namespace DungeonCrawl
             int sy = boxY + random.Next(0, boxHeight - height);
             int doorX = random.Next(1, width - 1);
             int doorY = random.Next(1, height - 1);
-            int shopChance = random.Next(40);
+            int shopChance = random.Next(2);
 
             // Create perimeter wall
             for (int y = 0; y < height; y++)

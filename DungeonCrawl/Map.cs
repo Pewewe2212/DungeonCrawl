@@ -113,8 +113,6 @@ namespace DungeonCrawl
             return Tile.Wall;
         }
 
-
-
         public void PlacePlayerToMap(PlayerCharacter character, Map level)
         {
             for (int i = 0; i < level.Tiles.Length; i++)
