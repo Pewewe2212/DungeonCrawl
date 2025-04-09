@@ -430,6 +430,12 @@ namespace DungeonCrawl
         static PlayerTurnResult DoPlayerTurn(Map level, PlayerCharacter character, Item itemClass, List<Monster> enemies, List<Item> items, List<int> dirtyTiles, List<string> messages)
         {
             Vector2 playerMove = new Vector2(0, 0);
+
+            while (Console.KeyAvailable)
+            {
+                Console.ReadKey(true);
+            }
+
             while (true)
             {
                 ConsoleKeyInfo key = Console.ReadKey();
@@ -1096,7 +1102,7 @@ namespace DungeonCrawl
             int sy = boxY + random.Next(0, boxHeight - height);
             int doorX = random.Next(1, width - 1);
             int doorY = random.Next(1, height - 1);
-            int shopChance = random.Next(2);
+            int shopChance = random.Next(40);
 
             // Create perimeter wall
             for (int y = 0; y < height; y++)
