@@ -430,6 +430,12 @@ namespace DungeonCrawl
         static PlayerTurnResult DoPlayerTurn(Map level, PlayerCharacter character, Item itemClass, List<Monster> enemies, List<Item> items, List<int> dirtyTiles, List<string> messages)
         {
             Vector2 playerMove = new Vector2(0, 0);
+
+            while (Console.KeyAvailable)
+            {
+                Console.ReadKey(true);
+            }
+
             while (true)
             {
                 ConsoleKeyInfo key = Console.ReadKey();
