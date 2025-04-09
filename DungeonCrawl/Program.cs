@@ -1096,7 +1096,7 @@ namespace DungeonCrawl
             int sy = boxY + random.Next(0, boxHeight - height);
             int doorX = random.Next(1, width - 1);
             int doorY = random.Next(1, height - 1);
-            int shopChance = random.Next(2);
+            int shopChance = random.Next(40);
 
             // Create perimeter wall
             for (int y = 0; y < height; y++)

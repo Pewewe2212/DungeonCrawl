@@ -15,8 +15,9 @@ namespace DungeonCrawl
         public int hitpoints;
         public char symbol;
         public ConsoleColor color;
+        public int damage;
 
-        static Monster CreateMonster(string name, int hitpoints, char symbol, ConsoleColor color, Vector2 position)
+        static Monster CreateMonster(string name, int hitpoints, char symbol, ConsoleColor color, Vector2 position, int damage)
         {
             Monster monster = new Monster();
             monster.name = name;
@@ -24,6 +25,7 @@ namespace DungeonCrawl
             monster.symbol = symbol;
             monster.color = color;
             monster.position = position;
+            monster.damage = damage;
             return monster;
         }
 
@@ -32,10 +34,10 @@ namespace DungeonCrawl
             int type = random.Next(4);
             return type switch
             {
-                0 => CreateMonster("Goblin", 5, 'g', ConsoleColor.Green, position),
-                1 => CreateMonster("Bat Man", 2, 'M', ConsoleColor.Magenta, position),
-                2 => CreateMonster("Orc", 15, 'o', ConsoleColor.Red, position),
-                3 => CreateMonster("Bunny", 1, 'B', ConsoleColor.Yellow, position)
+                0 => CreateMonster("Goblin", 6, 'g', ConsoleColor.Green, position, 3),
+                1 => CreateMonster("Bat Man", 4, 'M', ConsoleColor.Magenta, position, 2),
+                2 => CreateMonster("Orc", 20, 'o', ConsoleColor.Red, position, 5),
+                3 => CreateMonster("Bunny", 3, 'B', ConsoleColor.Yellow, position, 1)
             };
         }
 
@@ -103,8 +105,7 @@ namespace DungeonCrawl
                     Vector2 destinationPlace = enemy.position + enemyMove;
                     if (destinationPlace == character.position)
                     {
-                        // TODO: Random chance for armor to protect?
-                        int damage = 1;
+                        int damage = enemy.damage;
                         damage -= character.GetCharacterDefense();
                         if (damage <= 0)
                         {
@@ -122,6 +123,11 @@ namespace DungeonCrawl
                             dirtyTiles.Add(startTile);
                         }
                         else if (destination == Map.Tile.Door)
+                        {
+                            enemy.position = destinationPlace;
+                            dirtyTiles.Add(startTile);
+                        }
+                        else if (destination == Map.Tile.ShopDoor)
                         {
                             enemy.position = destinationPlace;
                             dirtyTiles.Add(startTile);
