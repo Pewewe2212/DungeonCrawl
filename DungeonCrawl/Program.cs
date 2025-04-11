@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Numerics;
 
 namespace DungeonCrawl
 {
@@ -10,6 +11,7 @@ namespace DungeonCrawl
         Inventory,
         Shop,
         DeathScreen,
+        Victory,
         Quit
     }
     enum PlayerTurnResult
@@ -19,7 +21,8 @@ namespace DungeonCrawl
         OpenInventory,
         EnterShop,
         NextLevel,
-        BackToGame
+        BackToGame,
+        Victory
     }
 
     internal enum ItemType
@@ -49,7 +52,7 @@ namespace DungeonCrawl
         // Shop per floor
         int shopType = 0;
 
-        bool scrollBought = false;
+        public bool scrollBought = false;
 
         // shop prices
         int shop;
@@ -129,7 +132,6 @@ namespace DungeonCrawl
                         dirtyTiles.Clear();
                         monsterClass.DrawEnemies(monsters, program);
                         itemClass.DrawItems(items, program);
-
                         player.DrawPlayer(player, program);
                         program.DrawCommands();
                         program.DrawInfo(player, messages);
@@ -201,6 +203,11 @@ namespace DungeonCrawl
                             state = GameState.DeathScreen;
                         }
 
+                        if (program.scrollBought == true)
+                        {
+                            state = GameState.Victory;
+                        }
+
                         break;
                     case GameState.Inventory:
                         // Draw inventory 
@@ -250,7 +257,36 @@ namespace DungeonCrawl
                             }
                         }
                         break;
-                };
+                    case GameState.Victory:
+                        DrawVictoryScreen(random);
+                        // Animation is over
+                        Console.SetCursorPosition(Console.WindowWidth / 2 - 4, Console.WindowHeight / 2);
+                        program.Print("YOU WON", ConsoleColor.DarkGreen);
+                        Console.SetCursorPosition(Console.WindowWidth / 2 - 4, Console.WindowHeight / 2 + 1);
+                        int noRepeatV = 0;
+                        while (true)
+                        {
+                            if (noRepeatV == 0)
+                            {
+                                program.Print("Play again (y/n)", ConsoleColor.Black);
+                                noRepeatV += 1;
+                            }
+                            ConsoleKeyInfo answer = Console.ReadKey();
+                            if (answer.Key == ConsoleKey.Y)
+                            {
+                                state = GameState.CharacterCreation;
+                                break;
+                            }
+                            else if (answer.Key == ConsoleKey.N)
+                            {
+                                state = GameState.Quit;
+                                break;
+                            }
+                        }
+
+                            break;
+                }
+                ;
             }
             Console.ResetColor();
             Console.Clear();
@@ -362,6 +398,29 @@ namespace DungeonCrawl
 
         }
 
+        static void DrawVictoryScreen(Random random)
+        {
+            byte[] speeds = new byte[Console.WindowWidth];
+            byte[] ends = new byte[Console.WindowWidth];
+            for (int i = 0; i < speeds.Length; i++)
+            {
+                speeds[i] = (byte)random.Next(1, 4);
+                ends[i] = 0;
+            }
+            Console.BackgroundColor = ConsoleColor.Yellow;
+            Console.ForegroundColor = ConsoleColor.White;
+
+
+            for (int row = 0; row < Console.WindowHeight - 2; row++)
+            {
+                Console.SetCursorPosition(0, row);
+                for (int i = 0; i < Console.WindowWidth; i++)
+                {
+                    Console.Write(" ");
+                }
+                Thread.Sleep(100);
+            }
+        }
 
         // the turns
         static bool DoPlayerTurnVsEnemies(PlayerCharacter character, List<Monster> enemies, Vector2 destinationPlace, List<string> messages)
@@ -413,7 +472,8 @@ namespace DungeonCrawl
                         case ItemType.Treasure:
                             itemMessage += $"valuable {item.name} and get {item.quality} gold!";
                             break;
-                    };
+                    }
+                    ;
                     messages.Add(itemMessage);
                     toRemoveItem = item;
                     itemClass.GiveItem(character, item);
@@ -555,7 +615,8 @@ namespace DungeonCrawl
                 {
                     messages.Add("No such item");
                 }
-            };
+            }
+            ;
             return PlayerTurnResult.BackToGame;
         }
 
@@ -566,7 +627,7 @@ namespace DungeonCrawl
             PrintLine("Shop. You can buy any item on sale, if you can afford it. Null input closes shop");
             PrintLine("Shop", ConsoleColor.DarkCyan);
             cursorPosition += 2;
-  
+
             // the shop qualities
 
 
@@ -1047,6 +1108,7 @@ namespace DungeonCrawl
                     }
                 }
             }
+
             return PlayerTurnResult.BackToGame;
         }
 
@@ -1102,7 +1164,7 @@ namespace DungeonCrawl
             int sy = boxY + random.Next(0, boxHeight - height);
             int doorX = random.Next(1, width - 1);
             int doorY = random.Next(1, height - 1);
-            int shopChance = random.Next(40);
+            int shopChance = random.Next(2);
 
             // Create perimeter wall
             for (int y = 0; y < height; y++)

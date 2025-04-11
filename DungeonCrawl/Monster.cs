@@ -36,7 +36,7 @@ namespace DungeonCrawl
             {
                 0 => CreateMonster("Goblin", 6, 'g', ConsoleColor.Green, position, 3),
                 1 => CreateMonster("Bat Man", 4, 'M', ConsoleColor.Magenta, position, 2),
-                2 => CreateMonster("Orc", 20, 'o', ConsoleColor.Red, position, 5),
+                2 => CreateMonster("Orc", 20, 'o', ConsoleColor.Red, position, 4),
                 3 => CreateMonster("Bunny", 3, 'B', ConsoleColor.Yellow, position, 1)
             };
         }
